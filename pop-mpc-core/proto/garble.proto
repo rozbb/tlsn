@@ -19,7 +19,7 @@ message GarbledCircuit {
     // Generator's wire labels corresponding to their input bits
     repeated InputLabel generator_input_labels = 2;
     // Truth table for garbled AND gates
-    repeated core.LabelPair table = 3;
+    required bytes table = 3;
     // LSB of each outputs low wire label
     repeated bool output_bits = 4;
 }
