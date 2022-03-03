@@ -6,7 +6,7 @@ use std::usize;
 /// `xref` and `yref` are the wire ids of the gate inputs
 /// `zref` is the wire id of the gate output
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub(crate) enum Gate {
+pub enum Gate {
     Xor {
         id: usize,
         level: usize,

@@ -147,3 +147,64 @@ fn group_gates(mut gates: Vec<Gate>, ninput_wires: usize) -> Vec<Gate> {
     }
     grouped_gates
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use itertools::Itertools;
+
+    #[test]
+    fn test_gate_levels_are_independent() {
+        let mut circ = Circuit::parse(
+            "circuits/bristol/aes_128_reverse.txt",
+            "aes_128_reverse",
+            "",
+        )
+        .unwrap();
+        for (level_id, level) in circ.gates.iter().group_by(|gate| gate.level()).into_iter() {
+            let gates: Vec<Gate> = level
+                .map(|a| *a)
+                .filter(|gate| match gate {
+                    Gate::And { .. } => true,
+                    _ => false,
+                })
+                .collect();
+            println!("{}", gates.len());
+        }
+    }
+
+    // let mut outputs: HashSet<usize> = HashSet::new();
+    //         for gate in group.iter().groupby(|| ) {
+    //             match gate {
+    //                 Gate::And {
+    //                     xref, yref, zref, ..
+    //                 } => {
+    //                     if outputs.contains(&xref) {
+    //                         panic!();
+    //                     } else if outputs.contains(&yref) {
+    //                         panic!();
+    //                     } else {
+    //                         outputs.insert(zref);
+    //                     }
+    //                 }
+    //                 Gate::Xor {
+    //                     xref, yref, zref, ..
+    //                 } => {
+    //                     if outputs.contains(&xref) {
+    //                         panic!();
+    //                     } else if outputs.contains(&yref) {
+    //                         panic!();
+    //                     } else {
+    //                         outputs.insert(zref);
+    //                     }
+    //                 }
+    //                 Gate::Inv { xref, zref, .. } => {
+    //                     if outputs.contains(&xref) {
+    //                         panic!();
+    //                     } else {
+    //                         outputs.insert(zref);
+    //                     }
+    //                 }
+    //             }
+    //         }
+}

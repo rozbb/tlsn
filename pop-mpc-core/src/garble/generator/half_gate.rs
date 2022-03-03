@@ -1,10 +1,10 @@
-use super::GarbledCircuitGenerator;
-use super::GeneratorError;
+use super::{hash_parallel, GarbledCircuitGenerator, GeneratorError};
 use crate::block::{Block, SELECT_MASK};
 use crate::circuit::Circuit;
 use crate::garble::circuit::CompleteGarbledCircuit;
 use crate::gate::Gate;
 use cipher::{consts::U16, BlockCipher, BlockEncrypt};
+use itertools::Itertools;
 use rand::{CryptoRng, Rng};
 
 pub struct HalfGateGenerator {}
@@ -41,6 +41,64 @@ impl HalfGateGenerator {
         let z = [z_0, z_0 ^ delta];
 
         (z, [t_g, t_e])
+    }
+
+    fn and_gates<C: BlockCipher<BlockSize = U16> + BlockEncrypt>(
+        &self,
+        c: &mut C,
+        cache: &mut Vec<Option<[Block; 2]>>,
+        table: &mut Vec<[Block; 2]>,
+        gid: &mut usize,
+        delta: Block,
+        gates: Vec<Gate>,
+    ) -> Result<(), GeneratorError> {
+        let len = gates.len();
+        let mut x0: Vec<Block> = Vec::with_capacity(len);
+        let mut x1: Vec<Block> = Vec::with_capacity(len);
+        let mut tweaks_x: Vec<usize> = Vec::with_capacity(len);
+        let mut y0: Vec<Block> = Vec::with_capacity(len);
+        let mut y1: Vec<Block> = Vec::with_capacity(len);
+        let mut tweaks_y: Vec<usize> = Vec::with_capacity(len);
+        let mut zref: Vec<usize> = Vec::with_capacity(len);
+        for gate in gates.into_iter() {
+            zref.push(gate.zref());
+
+            let x = cache[gate.xref()]
+                .ok_or_else(|| GeneratorError::UninitializedLabel(gate.xref()))?;
+            let y = cache[gate.yref().unwrap()]
+                .ok_or_else(|| GeneratorError::UninitializedLabel(gate.yref().unwrap()))?;
+
+            x0.push(x[0]);
+            y0.push(y[0]);
+            x1.push(x[1]);
+            y1.push(y[1]);
+            tweaks_x.push(*gid);
+            tweaks_y.push(*gid + 1);
+            *gid += 1;
+        }
+
+        let hx_0 = hash_parallel(c, &x0, &tweaks_x);
+        let hy_0 = hash_parallel(c, &y0, &tweaks_y);
+        let hx_1 = hash_parallel(c, &x1, &tweaks_x);
+        let hy_1 = hash_parallel(c, &y1, &tweaks_y);
+
+        for n in 0..len {
+            let p_a = x0[n].lsb();
+            let p_b = y0[n].lsb();
+
+            let t_g = hx_0[n] ^ hx_1[n] ^ (SELECT_MASK[p_b] & delta);
+            let w_g = hx_0[n] ^ (SELECT_MASK[p_a] & t_g);
+
+            let t_e = hy_0[n] ^ hy_1[n] ^ x0[n];
+            let w_e = hy_0[n] ^ (SELECT_MASK[p_b] & (t_e ^ x0[n]));
+
+            let z_0 = w_g ^ w_e;
+            let z = [z_0, z_0 ^ delta];
+            cache[zref[n]] = Some(z);
+            table.push([t_g, t_e]);
+        }
+
+        Ok(())
     }
 
     #[inline]
@@ -81,32 +139,34 @@ impl GarbledCircuitGenerator for HalfGateGenerator {
         }
 
         let mut gid = 1;
-        for gate in circ.gates.iter() {
-            match *gate {
-                Gate::Inv { xref, zref, .. } => {
-                    let x = cache[xref].ok_or_else(|| GeneratorError::UninitializedLabel(xref))?;
-                    let z = self.inv_gate(x, public_labels, delta);
-                    cache[zref] = Some(z);
-                }
-                Gate::Xor {
-                    xref, yref, zref, ..
-                } => {
-                    let x = cache[xref].ok_or_else(|| GeneratorError::UninitializedLabel(xref))?;
-                    let y = cache[yref].ok_or_else(|| GeneratorError::UninitializedLabel(yref))?;
-                    let z = self.xor_gate(x, y, delta);
-                    cache[zref] = Some(z);
-                }
-                Gate::And {
-                    xref, yref, zref, ..
-                } => {
-                    let x = cache[xref].ok_or_else(|| GeneratorError::UninitializedLabel(xref))?;
-                    let y = cache[yref].ok_or_else(|| GeneratorError::UninitializedLabel(yref))?;
-                    let (z, t) = self.and_gate(c, x, y, delta, gid);
-                    table.push(t);
-                    cache[zref] = Some(z);
-                    gid += 1;
-                }
-            };
+        for (level_id, level) in circ.gates.iter().group_by(|gate| gate.level()).into_iter() {
+            let mut and_gates: Vec<Gate> = Vec::with_capacity(1000);
+            for gate in level.into_iter() {
+                match *gate {
+                    Gate::Inv { xref, zref, .. } => {
+                        let x =
+                            cache[xref].ok_or_else(|| GeneratorError::UninitializedLabel(xref))?;
+                        let z = self.inv_gate(x, public_labels, delta);
+                        cache[zref] = Some(z);
+                    }
+                    Gate::Xor {
+                        xref, yref, zref, ..
+                    } => {
+                        let x =
+                            cache[xref].ok_or_else(|| GeneratorError::UninitializedLabel(xref))?;
+                        let y =
+                            cache[yref].ok_or_else(|| GeneratorError::UninitializedLabel(yref))?;
+                        let z = self.xor_gate(x, y, delta);
+                        cache[zref] = Some(z);
+                    }
+                    Gate::And {
+                        xref, yref, zref, ..
+                    } => {
+                        and_gates.push(*gate);
+                    }
+                };
+            }
+            self.and_gates(c, &mut cache, &mut table, &mut gid, delta, and_gates)?;
         }
 
         let mut output_bits: Vec<bool> = Vec::with_capacity(circ.noutput_wires);
