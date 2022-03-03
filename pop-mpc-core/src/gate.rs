@@ -46,7 +46,7 @@ impl Gate {
         }
     }
 
-    pub(crate) fn set_level(&mut self, level: usize) {
+    pub fn set_level(&mut self, level: usize) {
         let new_level = level;
         match self {
             Self::Xor { level, .. } => *level = new_level,

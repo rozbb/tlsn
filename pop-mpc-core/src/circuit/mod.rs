@@ -7,6 +7,8 @@ use crate::gate::Gate;
 
 pub use parse::*;
 
+use std::collections::HashSet;
+
 /// Circuit input
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CircuitInput {
@@ -111,4 +113,37 @@ impl Circuit {
             .collect();
         Ok(outputs)
     }
+}
+
+fn group_gates(mut gates: Vec<Gate>, ninput_wires: usize) -> Vec<Gate> {
+    let mut grouped_gates: Vec<Gate> = vec![];
+    let mut computed_inputs: HashSet<usize> = HashSet::new();
+    for n in 0..ninput_wires {
+        computed_inputs.insert(n);
+    }
+    let mut level_id = 0;
+    while gates.len() > 0 {
+        let mut level_outputs: Vec<usize> = vec![];
+        let mut miss: Vec<bool> = vec![];
+        for gate in gates.iter() {
+            let mut hit = computed_inputs.contains(&gate.xref());
+            if let Some(yref) = gate.yref() {
+                hit &= computed_inputs.contains(&yref);
+            }
+
+            if hit {
+                let mut gate = gate.clone();
+                gate.set_level(level_id);
+                level_outputs.push(gate.zref());
+                grouped_gates.push(gate)
+            }
+
+            miss.push(!hit);
+        }
+        let mut miss_iter = miss.iter();
+        gates.retain(|_| *miss_iter.next().unwrap());
+        computed_inputs.extend(level_outputs);
+        level_id += 1;
+    }
+    grouped_gates
 }

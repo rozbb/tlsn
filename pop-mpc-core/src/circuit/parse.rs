@@ -1,5 +1,5 @@
 use super::errors::CircuitParserError;
-use super::Circuit;
+use super::{group_gates, Circuit};
 use crate::gate::Gate;
 use anyhow::{anyhow, Context};
 use regex::Regex;
@@ -173,11 +173,15 @@ impl Circuit {
             circ.gates.push(gate);
             id += 1;
         }
+
         if id != ngates {
             return Err(CircuitParserError::ParsingError(anyhow!(
                 "expecting {ngates} gates, parsed {id}"
             )));
         }
+
+        circ.gates = group_gates(circ.gates, ninput_wires);
+
         Ok(circ)
     }
 }
