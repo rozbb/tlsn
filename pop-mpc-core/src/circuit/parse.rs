@@ -130,7 +130,12 @@ impl Circuit {
                 "INV" => {
                     let xref: usize = gate_vals[2].parse().context("Failed to parse gate")?;
                     let zref: usize = gate_vals[3].parse().context("Failed to parse gate")?;
-                    Gate::Inv { id, xref, zref }
+                    Gate::Inv {
+                        id,
+                        xref,
+                        zref,
+                        level: 0,
+                    }
                 }
                 "AND" => {
                     let xref: usize = gate_vals[2].parse().context("Failed to parse gate")?;
@@ -142,6 +147,7 @@ impl Circuit {
                         xref,
                         yref,
                         zref,
+                        level: 0,
                     }
                 }
                 "XOR" => {
@@ -154,6 +160,7 @@ impl Circuit {
                         xref,
                         yref,
                         zref,
+                        level: 0,
                     }
                 }
                 _ => {
