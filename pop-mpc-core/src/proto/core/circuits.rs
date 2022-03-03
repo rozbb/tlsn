@@ -11,11 +11,13 @@ impl From<crate::gate::Gate> for Gate {
         match g {
             crate::gate::Gate::Xor {
                 id,
+                level,
                 xref,
                 yref,
                 zref,
             } => Self {
                 id: id as u32,
+                level: level as u32,
                 xref: xref as u32,
                 yref: yref as u32,
                 zref: zref as u32,
@@ -23,18 +25,26 @@ impl From<crate::gate::Gate> for Gate {
             },
             crate::gate::Gate::And {
                 id,
+                level,
                 xref,
                 yref,
                 zref,
             } => Self {
                 id: id as u32,
+                level: level as u32,
                 xref: xref as u32,
                 yref: yref as u32,
                 zref: zref as u32,
                 gate_type: 1,
             },
-            crate::gate::Gate::Inv { id, xref, zref } => Self {
+            crate::gate::Gate::Inv {
+                id,
+                level,
+                xref,
+                zref,
+            } => Self {
                 id: id as u32,
+                level: level as u32,
                 xref: xref as u32,
                 yref: 0,
                 zref: zref as u32,
@@ -52,18 +62,21 @@ impl TryFrom<Gate> for crate::gate::Gate {
         let g = match g.gate_type {
             0 => Self::Xor {
                 id: g.id as usize,
+                level: g.level as usize,
                 xref: g.xref as usize,
                 yref: g.yref as usize,
                 zref: g.zref as usize,
             },
             1 => Self::And {
                 id: g.id as usize,
+                level: g.level as usize,
                 xref: g.xref as usize,
                 yref: g.yref as usize,
                 zref: g.zref as usize,
             },
             2 => Self::Inv {
                 id: g.id as usize,
+                level: g.level as usize,
                 xref: g.xref as usize,
                 zref: g.zref as usize,
             },

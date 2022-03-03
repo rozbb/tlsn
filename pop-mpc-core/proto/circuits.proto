@@ -9,10 +9,11 @@ message Gate {
         INV = 2;
     }
     required uint32 id = 1;
-    required uint32 xref = 2;
-    required uint32 yref = 3;
-    required uint32 zref = 4;
-    required GateType gate_type = 5;
+    required uint32 level = 2;
+    required uint32 xref = 3;
+    required uint32 yref = 4;
+    required uint32 zref = 5;
+    required GateType gate_type = 6;
 }
 
 message Circuit {

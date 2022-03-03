@@ -19,6 +19,7 @@ serde = { version = "1", features=["derive"] }
 prost = "0.9"
 thiserror = "1.0.30"
 anyhow = "1.0.55"
+itertools = "0.10.3"
 
 [dev-dependencies]
 rstest = "0.12.0"
