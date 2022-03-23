@@ -9,3 +9,13 @@ name = "tls_aio"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures-util = "0.3.21"
+async-trait = "0.1.52"
+tokio-tungstenite = "0.17.1"
+tokio = { version = "1.17", features = [
+    "net",
+    "macros",
+    "rt",
+    "rt-multi-thread",
+] }
+pop-tls-core = { path = "../pop-tls-core" }
