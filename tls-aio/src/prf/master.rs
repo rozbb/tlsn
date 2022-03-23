@@ -1,10 +1,10 @@
 use futures_util::{SinkExt, StreamExt};
+use mpc_aio::garble::{Evaluator, Generator};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
+struct PrfMaster;
 
-struct AsyncPrfMaster;
-
-impl AsyncPrfMaster {
+impl PrfMaster {
     pub fn new() -> Self {
         Self
     }
